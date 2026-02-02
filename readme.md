@@ -49,52 +49,46 @@ Golang версия 1.25.6
 
 Для работы с WebSocket используем библиотеку [gorilla/websocket](https://github.com/gorilla/websocket/)
 
-## Develop websocket server
+## Реализация
 
-
-### Разработка в контейнере
-
-1. Собрать контейнер
-
-```
-$ docker-compose -f docker-compose-dev.yaml up --remove-orphans
-```
-
-2. Подключиться в режиме командной строки
+1. Периодическую отправку WebSocket ping-фреймов для сброса таймаута и проверки работоспособности соединения.
+2. Данные передаются как текст в кодировке UTF-8 (websocket.TextMessage = 1). В пакете [github.com/gorilla/websocket](https://github.com/gorilla/websocket) определено несколько типов сообщений, которые соответствуют спецификации протокола RFC 6455.
+3. Без установленного дедлайна ваш WriteMessage может «зависнуть» навсегда, если клиент перестал подтверждать получение пакетов, а системные буферы переполнились. Разработчики библиотеки [github.com/gorilla/websocket](https://github.com/gorilla/websocket) настоятельно рекомендуют всегда устанавливать дедлайн перед каждой операцией записи, чтобы избежать утечки горутин.
 
 ```
-$ docker exec -it ws bash
+    for {
+        select {
+            case message := <-echo:
+                ws.SetWriteDeadline(time.Now().Add(writeWait))
+                if err := ws.WriteMessage(websocket.TextMessage,[]byte(message)); err != nil {
+                    log.Println("EchoWriteMessageError:", err)
+                    return
+                }
+            case <-pingTicker.C:
+                ws.SetWriteDeadline(time.Now().Add(writeWait))
+                if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+                    log.Println("PingWriteMessageError:", err)
+                    return
+                }
+        }
+    }
 ```
 
-3. Запуск сервиса
+# Client
+
+[wscat](https://www.npmjs.com/package/wscat) - утилита командной строки на базе Node.js, используемая для тестирования и отладки WebSocket-серверов.
+
+## Команды для работы с ping/pong
+
+1. Отображение уведомлений: По умолчанию wscat не показывает скрытые управляющие фреймы. Чтобы увидеть, когда приходят ping или pong, используйте флаг:
 
 ```
-# go run main.go
+wscat -c <url> -P
 ```
 
-### Тестирование в контейнере
+2. Ручная отправка: Если вы хотите отправить ping или pong самостоятельно (например, для отладки), включите режим «slash-команд».После этого можно вводить /ping [сообщение] или /pong [сообщение] прямо в консоли.
 
 ```
-$ wscat -c ws://localhost:8000/ws-notifications
-Connected (press CTRL+C to quit)
-> hello
-< hello
+wscat -c <url> --slash
 ```
-
-## Сервисное тестирование
-
-```
-$ docker-compose up --remove-orphans
-```
-
-```
-$ wscat -c ws://localhost/ws-notifications
-Connected (press CTRL+C to quit)
-> hello
-< hello
-
-```
-
-[] Timeout - не активное соединение должно отваливаться через 120 сек
-
 

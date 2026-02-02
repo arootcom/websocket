@@ -2,33 +2,65 @@ package main
 
 import (
     "log"
+    "time"
     "net/http"
     "github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024, // Размер буфера чтения
-    WriteBufferSize: 1024, // Размер буфера записи
-    // Позволяет определить, должен ли сервер сжимать сообщения
-    EnableCompression: true,
-}
+const (
+	writeWait = 10 * time.Second        // 10 сек
+	pongWait = 60 * time.Second         // 60 сек
+	pingPeriod = (pongWait * 9) / 10    // 54 сек
+)
 
-func reader(ws *websocket.Conn) {
+var (
+    upgrader = websocket.Upgrader{
+        ReadBufferSize:  1024, // Размер буфера чтения
+        WriteBufferSize: 1024, // Размер буфера записи
+        // Позволяет определить, должен ли сервер сжимать сообщения
+        EnableCompression: true,
+    }
+)
+
+func reader(ws *websocket.Conn, echo chan string) {
     defer ws.Close()
+
+    ws.SetPongHandler( func(appData string) error {
+        log.Printf("Получен PONG от %s: %s", ws.RemoteAddr(), appData)
+        ws.SetReadDeadline(time.Now().Add(pongWait));
+        return nil
+    })
 
     // цикл обработки сообщений
     for {
-        messageType, message, err := ws.ReadMessage()
+        _, message, err := ws.ReadMessage()
         if err != nil {
             log.Println(err)
             break
         }
         log.Printf("Received: %s", message)
+        echo <- string(message)
+    }
+}
 
-        // эхо ансвер
-        if err := ws.WriteMessage(messageType, message); err != nil {
-            log.Println(err)
-            break
+func writer(ws *websocket.Conn, echo chan string) {
+    pingTicker := time.NewTicker(pingPeriod)
+    defer pingTicker.Stop()
+
+    for {
+        select {
+            case message := <-echo:
+                ws.SetWriteDeadline(time.Now().Add(writeWait))
+                if err := ws.WriteMessage(websocket.TextMessage,[]byte(message)); err != nil {
+                    log.Println("EchoWriteMessageError:", err)
+                    return
+                }
+            case <-pingTicker.C:
+                ws.SetWriteDeadline(time.Now().Add(writeWait))
+                if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+                    log.Println("PingWriteMessageError:", err)
+                    return
+                }
         }
     }
 }
@@ -40,7 +72,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
         log.Fatal(err)
     }
 
-    reader(ws)
+    echo := make(chan string)
+
+    go writer(ws, echo)
+    reader(ws, echo)
 }
 
 func main() {
