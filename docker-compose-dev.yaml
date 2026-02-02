@@ -1,0 +1,21 @@
+version: '3.7'
+
+networks:
+  ws-dev-network:
+    name: ws-dev-network
+    driver: bridge
+
+services:
+  ws-dev:
+    container_name: ws-dev
+    image: ws-dev
+    build:
+      context: ./
+      dockerfile: Dockerfile.server.dev
+    volumes:
+      - ./server:/usr/src/app
+    ports:
+      - 8000:8000
+    networks:
+      - ws-dev-network
+
