@@ -1,0 +1,36 @@
+version: '3.7'
+
+networks:
+  ws-notifications-network:
+    name: ws-notifications-network
+    driver: bridge
+
+services:
+  wsnginx:
+    container_name: ws-nginx
+    image: ws-nginx
+    build:
+      context: ./
+      dockerfile: Dockerfile.nginx
+    restart: unless-stopped
+    tty: true
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+    networks:
+      - ws-notifications-network
+    depends_on:
+      - wsserver
+  wsserver:
+    container_name: ws-server
+    image: ws-server
+    build:
+      context: ./
+      dockerfile: Dockerfile.server
+    ports:
+      - 8000:8000
+    networks:
+      - ws-notifications-network
+

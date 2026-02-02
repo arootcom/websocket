@@ -1,6 +1,9 @@
 # Websoket
 
+# Nginx
 
+Образ (Docker)[https://hub.docker.com/_/nginx] nginx:stable-alpine3.23 содержит последнюю стабильную версию (1.28.1)
+веб-сервера Nginx.
 
 ## Develop websocket server
 
