@@ -2,8 +2,42 @@
 
 # Nginx
 
-Образ (Docker)[https://hub.docker.com/_/nginx] nginx:stable-alpine3.23 содержит последнюю стабильную версию (1.28.1)
+Образ [Docker](https://hub.docker.com/_/nginx) nginx:stable-alpine3.23 содержит последнюю стабильную версию (1.28.1)
 веб-сервера Nginx.
+
+### Варианты настройки
+
+1. njs (Nginx JavaScript) - это наиболее современный способ. Модуль ngx_http_js_module позволяет перехватывать данные и выполнять асинхронные HTTP-запросы.
+
+Как работает: Вы пишете JS-скрипт, который принимает сообщение из WebSocket, парсит его (например, JSON) и инициирует внутренний подзапрос (r.subrequest) или внешний запрос через ngx.fetch к вашему REST API.
+
+2. OpenResty / lua-nginx-module
+Библиотека lua-resty-websocket является стандартом для таких задач.
+
+Как работает: Внутри Lua-обработчика вы читаете фреймы WebSocket, извлекаете команду и используете HTTP-клиент (например, lua-resty-http) для отправки REST-запроса. Это обеспечивает 100% неблокирующее поведение.
+
+3. Nginx как API Gateway
+
+Сам Nginx часто используется как прокси, который просто «пробрасывает» WebSocket до бэкенда (Go), где и происходит основная логика преобразования.
+
+#### Настройка проксирования Nginx как API Gateway
+
+1. Чтобы Nginx вообще понимал WebSocket, необходимо явно передать заголовки Upgrade и Connection.
+
+```
+location /ws {
+    proxy_pass http://backend_rest_converter;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+2. По умолчанию соединение будет закрыто, если с проксируемого сервера данные не передавались в течение 60 секунд. Этот таймаут можно увеличить при помощи директивы конфигурационного файла Nginx [proxy_read_timeout](https://nginx.org/ru/docs/http/ngx_http_proxy_module.html#proxy_read_timeout).
+
+```
+proxy_read_timeout 120s
+```
 
 ## Develop websocket server
 
@@ -29,12 +63,29 @@ $ docker exec -it ws bash
 # go run main.go
 ```
 
-### Тестирование 
+### Тестирование в контейнере
 
 ```
 $ wscat -c ws://localhost:8000/ws-notifications
 Connected (press CTRL+C to quit)
 > hello
 < hello
+```
+
+## Сервисное тестирование
 
 ```
+$ docker-compose up --remove-orphans
+```
+
+```
+$ wscat -c ws://localhost/ws-notifications
+Connected (press CTRL+C to quit)
+> hello
+< hello
+
+```
+
+[] Timeout - не активное соединение должно отваливаться через 120 сек
+
+
