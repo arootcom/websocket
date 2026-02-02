@@ -7,16 +7,13 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-    WriteBufferSize: 1024,
+    ReadBufferSize:  1024, // Размер буфера чтения
+    WriteBufferSize: 1024, // Размер буфера записи
+    // Позволяет определить, должен ли сервер сжимать сообщения
+    EnableCompression: true,
 }
 
-func handleConnections(w http.ResponseWriter, r *http.Request) {
-    // обновление соединения до WebSocket
-    ws, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
+func reader(ws *websocket.Conn) {
     defer ws.Close()
 
     // цикл обработки сообщений
@@ -34,6 +31,16 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
             break
         }
     }
+}
+
+func handleConnections(w http.ResponseWriter, r *http.Request) {
+    // обновление соединения до WebSocket
+    ws, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    reader(ws)
 }
 
 func main() {

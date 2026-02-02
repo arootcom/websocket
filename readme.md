@@ -14,7 +14,7 @@ Golang версия 1.25.6
 1. Собрать контейнер
 
 ```
-$ docker-compose -f docker-compose-dev.yaml up
+$ docker-compose -f docker-compose-dev.yaml up --remove-orphans
 ```
 
 2. Подключиться в режиме командной строки
@@ -32,7 +32,7 @@ $ docker exec -it ws bash
 ### Тестирование 
 
 ```
-$ wscat -c ws://localhost:8000/ws
+$ wscat -c ws://localhost:8000/ws-notifications
 Connected (press CTRL+C to quit)
 > hello
 < hello
