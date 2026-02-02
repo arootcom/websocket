@@ -37,7 +37,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    http.HandleFunc("/ws", handleConnections)
+    http.HandleFunc("/ws-notifications", handleConnections)
     log.Println("http server started on :8000")
     err := http.ListenAndServe(":8000", nil)
     if err != nil {
