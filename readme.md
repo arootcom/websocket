@@ -11,18 +11,29 @@
 
 2. **OpenResty** / lua-nginx-module. Библиотека lua-resty-websocket является стандартом для таких задач. Как работает: Внутри Lua-обработчика вы читаете фреймы WebSocket, извлекаете команду и используете HTTP-клиент (например, lua-resty-http) для отправки REST-запроса. Это обеспечивает 100% неблокирующее поведение.
 
-3. **Nginx как API Gateway**. Сам Nginx часто используется как прокси, который просто «пробрасывает» WebSocket до бэкенда (Go), где и происходит основная логика преобразования.
+3. **Nginx как API Gateway**. Сам Nginx часто используется как [прокси](https://nginx.org/ru/docs/http/websocket.html), который просто «пробрасывает» WebSocket до бэкенда (Go), где и происходит основная логика преобразования.
 
 ## Настройка проксирования Nginx как API Gateway
 
 1. Чтобы Nginx вообще понимал WebSocket, необходимо явно передать заголовки Upgrade и Connection.
 
 ```
-location /ws {
-    proxy_pass http://backend_rest_converter;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
+http {
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
+    server {
+        ...
+
+        location /chat/ {
+            proxy_pass http://backend;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+        }
+    }
 }
 ```
 
@@ -35,6 +46,8 @@ proxy_read_timeout 120s
 # Server
 
 Golang версия 1.25.6
+
+Для работы с WebSocket используем библиотеку [gorilla/websocket](https://github.com/gorilla/websocket/)
 
 ## Develop websocket server
 
