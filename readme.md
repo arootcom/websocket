@@ -7,12 +7,14 @@
 3. Выбрать вариант реализации, на уровне nginx, соединия между websocket сервисом и клиентом
 4. Оптимизировать значения таймауты (WebSocket Ping) под связку Docker + Nginx.
 5. Использование TLS/SSL (WSS)
+6. Мониторинг соединений на уровне Nginx
 
 TODO
 
-1. Мониторинг соединений на уровне Nginx
-3. Балансировка нагрузки
-4. Мониторинг на уровне сервиса
+1. Балансировка нагрузки и мониторинг
+2. Мониторинг на уровне сервиса
+3. Какой размер данных максимально можно передавать через websocket
+4. Авторизация через Keycloak
 
 # Nginx
 
@@ -87,6 +89,21 @@ server {
     ssl_certificate     /etc/nginx/localhost.pem;
     ssl_certificate_key /etc/nginx/localhost-key.pem;
 }
+```
+
+**Шаг 5** Мониторинг соединений на уровне Nginx. Можно смотреть количество активных соединений через модуль stub_status.
+
+```
+location /status {
+    stub_status;
+}
+```
+
+Команда curl покажет строку Active connections, куда входят вебсокеты
+
+```
+$ curl -k  https://localhost/status
+Active connections: 1
 ```
 
 # Server
