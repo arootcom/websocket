@@ -8,9 +8,13 @@ import (
 )
 
 const (
-	writeWait = 10 * time.Second        // 10 сек
+    // Время на отправку сообщения
+	writeWait = 15 * time.Second        // 15 сек
+    // Сколько ждем ответа от клиента
 	pongWait = 60 * time.Second         // 60 сек
-	pingPeriod = (pongWait * 9) / 10    // 54 сек
+    // Пингуем чаще, чтобы Nginx не закрыл сокет
+    // Чем чаще пинг, тем быстрее вы узнаете о разрыве
+	pingPeriod = 30 * time.Second       // 30 сек
 )
 
 var (
