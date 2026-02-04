@@ -15,6 +15,9 @@ const (
     // Пингуем чаще, чтобы Nginx не закрыл сокет
     // Чем чаще пинг, тем быстрее вы узнаете о разрыве
 	pingPeriod = 30 * time.Second       // 30 сек
+    // ограничивает размер сообщения,
+    // для защиты от DoS-атак (переполнения памяти)
+    readLimit = 65536 // Ограничение на 64 КБ
 )
 
 var (
@@ -28,7 +31,8 @@ var (
 
 func reader(ws *websocket.Conn, echo chan string) {
     defer ws.Close()
-
+	ws.SetReadLimit(readLimit)
+	ws.SetReadDeadline(time.Now().Add(pongWait))
     ws.SetPongHandler( func(appData string) error {
         log.Printf("Получен PONG от %s: %s", ws.RemoteAddr(), appData)
         ws.SetReadDeadline(time.Now().Add(pongWait));
@@ -38,8 +42,14 @@ func reader(ws *websocket.Conn, echo chan string) {
     // цикл обработки сообщений
     for {
         _, message, err := ws.ReadMessage()
+        log.Printf("Получено байт: %d\n", len(message))
         if err != nil {
-            log.Println(err)
+            if err == websocket.ErrReadLimit {
+                log.Printf("Клиент прислал слишком много данных! %v", err)
+                // логирование, аудит, метрики, алерт
+                log.Printf("Сигнал тревоги: IP %s попытка DoS-атаки\n", ws.RemoteAddr())
+            }
+            log.Println("Error:", err)
             break
         }
         log.Printf("Received: %s", message)
