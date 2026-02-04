@@ -24,13 +24,10 @@ services:
     depends_on:
       - wsserver
   wsserver:
-    container_name: ws-server
     image: ws-server
     build:
       context: ./
       dockerfile: Dockerfile.server
-    ports:
-      - 8000:8000
     networks:
       - ws-notifications-network
 
