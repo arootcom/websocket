@@ -45,4 +45,10 @@ Connected (press CTRL+C to quit)
 
 [] Timeout - не активное соединение должно отваливаться через 120 сек
 
+```
+# go test -v -run TestCompressionWebSocketHandler
+```
 
+```
+# go test -v -run TestWebSocketHandler
+```

@@ -4,6 +4,7 @@ import (
     "log"
     "time"
     "net/http"
+    "strings"
     "github.com/gorilla/websocket"
 )
 
@@ -31,6 +32,8 @@ var (
 
 func reader(ws *websocket.Conn, echo chan string) {
     defer ws.Close()
+    // Включаем сжатие конкретно для этого соединения (уровень 1-9)
+    ws.SetCompressionLevel(2)
 	ws.SetReadLimit(readLimit)
 	ws.SetReadDeadline(time.Now().Add(pongWait))
     ws.SetPongHandler( func(appData string) error {
@@ -64,6 +67,7 @@ func writer(ws *websocket.Conn, echo chan string) {
     for {
         select {
             case message := <-echo:
+                log.Printf("Отправлено байт: %d\n", len(message))
                 ws.SetWriteDeadline(time.Now().Add(writeWait))
                 if err := ws.WriteMessage(websocket.TextMessage,[]byte(message)); err != nil {
                     log.Println("EchoWriteMessageError:", err)
@@ -80,6 +84,16 @@ func writer(ws *websocket.Conn, echo chan string) {
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+    extensions := r.Header.Get("Sec-WebSocket-Extensions")
+
+    if !strings.Contains(extensions, "permessage-deflate") {
+        // Если сжатие не запрошено, отдаем 400 Bad Request или 403
+        http.Error(w, "Требуется сжатие трафика (permessage-deflate)", http.StatusBadRequest)
+        log.Printf("Соединение от %s отклонено: клиент не поддерживает сжатие", r.RemoteAddr)
+        return
+    }
+
+    // 3. Если всё ок, делаем Upgrade
     // обновление соединения до WebSocket
     ws, err := upgrader.Upgrade(w, r, nil)
     if err != nil {
