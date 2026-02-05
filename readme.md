@@ -211,13 +211,19 @@ upstream go_sockets {
 Запускаем идентичные копии сервиса (например, 3 воркера), используем флаг --scale
 
 ```
-$ docker-compose up --remove-orphans -d --scale wsserver=3
+$ docker-compose up -d --scale ws-server=3 --scale ws-client=10
 ```
 
 > [!NOTE]
 > в docker-compose.yaml у этого сервиса не должно быть жестко прописано container_name. Docker сам назначит имена (например, websocket-wsserver-1, websocket-wsserver-2, websocket-wsserver-3)
 
 Чтобы прописать масштабируемые сервисы в Nginx, вам не нужно знать индивидуальные имена контейнеров. Внутренний DNS Docker автоматически связывает имя сервиса (в вашем случае wsserver) со всеми его IP-адресами. Когда Nginx обращается к хосту wsserver, DNS-сервер Docker возвращает список IP-адресов всех запущенных реплик этого сервиса.
+
+Так же можно подключиться алтернативным клиентом и писать сообщения в консоль
+
+```
+$ wscat -n -c wss://localhost/ws-notifications -P
+```
 
 **Шаг 8** Теоретически предел одного фрейма в протоколе WebSocket — 2^63 байт (9 эксабайт), но на практике вы упретесь в лимиты библиотеки, памяти и прокси-сервера.
 

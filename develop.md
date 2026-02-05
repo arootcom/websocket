@@ -1,54 +1,98 @@
-# Develop websocket server
+# Контур разработки
 
-## Разработка в контейнере
+**Контур разработки** (Development Environment / Loop) — это изолированная среда, в которой программист пишет, запускает и тестирует код перед тем, как он попадет к пользователям.
 
-1. Собрать контейнер
+Архитектура среды разработки реализована посредством спецификации docker-compose-dev.yaml
+
+## Server
+
+**Шаг 1** Запуск контура разработки
 
 ```
 $ docker-compose -f docker-compose-dev.yaml up --remove-orphans
 ```
 
-2. Подключиться в режиме командной строки
+**Шаг 2**. Подключиться в режиме командной строки
 
 ```
-$ docker exec -it ws bash
+$ docker exec -it ws-dev-server bash
 ```
 
-3. Запуск сервиса
+**Шаг 3**. Запуск тестов
+
+Все тесты
 
 ```
-# go run main.go
+/usr/src/app# go test -v
 ```
 
-## Тестирование в контейнере
+Интеграционные тесты
+
+1. Подключаение клиентом с включенной компрессией
+2. Проверяем, что сервер подтвердил сжатие в заголовках
+3. Отправление сообщения
+4. Чтение ответа
+5. Проверяем, что сервер реально обрывает связь на 64 КБ
 
 ```
-$ wscat -c ws://localhost:8000/ws-notifications
-Connected (press CTRL+C to quit)
-> hello
-< hello
+/usr/src/app# go test -v -run TestCompressionWebSocketHandler
 ```
 
-## Сервисное тестирование
+6. Подключение клиентом без компресии (должно блокироваться сервисом)
 
 ```
-$ docker-compose up --remove-orphans
+/usr/src/app# go test -v -run TestWebSocketHandler
 ```
 
-```
-$ wscat -c ws://localhost/ws-notifications
-Connected (press CTRL+C to quit)
-> hello
-< hello
+> [!NOTE]
+> Не покрыты тестами:
+> 1. Timeout - не активное соединение должно отваливаться через 30 сек
+
+**Шаг 4**. Завершение работы
 
 ```
-
-[] Timeout - не активное соединение должно отваливаться через 120 сек
-
-```
-# go test -v -run TestCompressionWebSocketHandler
+$ docker-compose -f docker-compose-dev.yaml down
 ```
 
+## Client
+
+**Шаг 1** Запуск контура разработки
+
 ```
-# go test -v -run TestWebSocketHandler
+$ docker-compose -f docker-compose-dev.yaml up --remove-orphans
 ```
+
+**Шаг 2**. Подключиться в режиме командной строки
+
+```
+$ docker exec -it ws-dev-server bash
+```
+
+**Шаг 3**. Запуск сервиса
+
+```
+/usr/src/app# go run main.go
+```
+
+**Шаг 4**. Подключиться в режиме командной строки
+
+```
+$ docker exec -it ws-dev-client bash
+```
+
+**Шаг 5** Запуск клиента
+
+```
+/usr/src/app# go run main.go
+```
+
+## Алтернативные клиенты
+
+Для работы с алтернативными клиентами контур разработки должен быть запущен, а так же запущен сервис websocket.
+
+**wscat** - это один из самых популярных и простых консольных инструментов для работы с WebSocket. Если curl предназначен для HTTP, то wscat для сокетов.
+
+```
+$ wscat -c ws://localhost/ws-notifications -P
+```
+

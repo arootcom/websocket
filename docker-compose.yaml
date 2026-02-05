@@ -6,7 +6,7 @@ networks:
     driver: bridge
 
 services:
-  wsnginx:
+  ws-nginx:
     container_name: ws-nginx
     image: ws-nginx
     build:
@@ -14,7 +14,6 @@ services:
       dockerfile: Dockerfile.nginx
     restart: unless-stopped
     tty: true
-    container_name: nginx
     volumes:
       - ./nginx/:/etc/nginx/
     ports:
@@ -22,12 +21,28 @@ services:
     networks:
       - ws-notifications-network
     depends_on:
-      - wsserver
-  wsserver:
+      - ws-server
+  ws-server:
+    #container_name: ws-server
     image: ws-server
     build:
       context: ./
       dockerfile: Dockerfile.server
     networks:
       - ws-notifications-network
+  ws-client:
+    #container_name: ws-client
+    image: ws-client
+    build:
+      context: ./
+      dockerfile: Dockerfile.client
+    volumes:
+      - ./client:/usr/src/app
+    environment:
+      WS_SCHEME: wss
+      WS_HOSTNAME: ws-nginx
+    networks:
+      - ws-notifications-network
+    depends_on:
+      - ws-nginx
 

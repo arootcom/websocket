@@ -45,7 +45,7 @@ func reader(ws *websocket.Conn, echo chan string) {
     // цикл обработки сообщений
     for {
         _, message, err := ws.ReadMessage()
-        log.Printf("Получено байт: %d\n", len(message))
+        log.Printf("Получено байт от %s: %d\n", ws.RemoteAddr(), len(message))
         if err != nil {
             if err == websocket.ErrReadLimit {
                 log.Printf("Клиент прислал слишком много данных! %v", err)
@@ -55,7 +55,7 @@ func reader(ws *websocket.Conn, echo chan string) {
             log.Println("Error:", err)
             break
         }
-        log.Printf("Received: %s", message)
+        log.Printf("Сообщение от %s: %s", ws.RemoteAddr(), message)
         echo <- string(message)
     }
 }
@@ -67,7 +67,7 @@ func writer(ws *websocket.Conn, echo chan string) {
     for {
         select {
             case message := <-echo:
-                log.Printf("Отправлено байт: %d\n", len(message))
+                log.Printf("Отправлено байт для %s: %d\n", ws.RemoteAddr(), len(message))
                 ws.SetWriteDeadline(time.Now().Add(writeWait))
                 if err := ws.WriteMessage(websocket.TextMessage,[]byte(message)); err != nil {
                     log.Println("EchoWriteMessageError:", err)
@@ -84,8 +84,14 @@ func writer(ws *websocket.Conn, echo chan string) {
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
-    extensions := r.Header.Get("Sec-WebSocket-Extensions")
+    log.Printf("Новое подключение: IP %s\n", r.RemoteAddr)
+    for name, values := range r.Header {
+        for _, value := range values {
+            log.Printf("Header: %s: %s\n", name, value)
+        }
+    }
 
+    extensions := r.Header.Get("Sec-WebSocket-Extensions")
     if !strings.Contains(extensions, "permessage-deflate") {
         // Если сжатие не запрошено, отдаем 400 Bad Request или 403
         http.Error(w, "Требуется сжатие трафика (permessage-deflate)", http.StatusBadRequest)
@@ -108,8 +114,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 func main() {
     http.HandleFunc("/ws-notifications", handleConnections)
-    log.Println("http server started on :8000")
-    err := http.ListenAndServe(":8000", nil)
+    log.Println("http server started on :80")
+    err := http.ListenAndServe(":80", nil)
     if err != nil {
         log.Fatal("ListenAndServe: ", err)
     }
