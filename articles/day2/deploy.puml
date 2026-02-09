@@ -1,0 +1,46 @@
+@startuml
+
+'!theme plain
+skinparam {
+  shadowing false
+  nodesep 50
+  ranksep 100
+'  linetype ortho
+}
+
+hide empty members
+allowmixing
+
+component wscat <<client>> {
+}
+
+cloud docker as "docker-compose.yaml" <<docker>> {
+    interface local_https as "https, wss\nport: 443" <<interface>>
+    wscat -right(0- local_https
+
+
+    node ws-nginx as "ws-nginx (x1)" <<container>> {
+        interface https as "https, wss\nport: 443" <<interface>>
+        local_https #--# https
+
+
+        component nginx <<application>>
+        note left of nginx : reverse proxy
+        https --# nginx
+    }
+
+    node ws-server as "ws-server (x3)" <<container>> {
+        interface ws as "http, ws: 80" <<interface>>
+        nginx -right(0- ws
+
+        component server <<application>>
+        ws -right-# server
+    }
+
+    node ws-client as "ws-client (x10)" <<container>> {
+        component client <<application>>
+        https -right0)- client
+    }
+}
+
+@enduml
