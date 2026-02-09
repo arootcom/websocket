@@ -79,6 +79,10 @@
 
 ![](deploy.png)
 
+```
+$ docker-compose up -d --scale ws-server=3 --scale ws-client=10
+```
+
 ### Ключевые моменты
 
 1. Nginx — reverse proxy с настройкой таймаутов и лимитов
