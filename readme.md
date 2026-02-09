@@ -2,7 +2,7 @@
 
 ## Articles
 
-- (Day 2)[./articles/day2/readme.md]
+- [Day 2](./articles/day2/readme.md)
 
 ## TODO
 
