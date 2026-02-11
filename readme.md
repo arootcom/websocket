@@ -1,8 +1,13 @@
 # Websoket
 
+## ADR
+
+1. [Day 1: Выбор библиотеки WebSocket для Go](./articles/day1/adr.md)
+2. [Day 2: Организация распределённой WebSocket-архитектуры с Nginx и Docker](./articles/day2/adr.md)
+
 ## Articles
 
-- [Day 2](./articles/day2/readme.md)
+1. [WebSocket на Go: от эксперимента до production-ready решения](./articles/production-ready.md)
 
 ## TODO
 
