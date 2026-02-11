@@ -340,7 +340,7 @@ location /ws-notifications {
 > [!NOTE]
 > Если в Go стоит SetReadLimit(65536), настройки Nginx не имеют практического смысла — Go «отрубит» клиента раньше.
 
-## Сжатие данных (permessage-deflate)
+## Шаг 10: Сжатие данных (permessage-deflate)
 
 Зачем? Текстовые данные (JSON, логи) сжимаются в 5–10 раз.
 
