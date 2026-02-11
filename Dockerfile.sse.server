@@ -1,0 +1,12 @@
+FROM golang:1.25.6
+
+WORKDIR /usr/src/app
+
+COPY ./sse-server .
+
+RUN go mod download && go mod verify
+
+RUN go build -v -o /usr/local/bin/app ./...
+
+ENTRYPOINT ["app"]
+

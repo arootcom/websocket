@@ -1,8 +1,8 @@
 version: '3.7'
 
 networks:
-  ws-notifications-network:
-    name: ws-notifications-network
+  notifications-network:
+    name: notifications-network
     driver: bridge
 
 services:
@@ -20,19 +20,17 @@ services:
     ports:
       - 443:443
     networks:
-      - ws-notifications-network
+      - notifications-network
     depends_on:
       - ws-server
   ws-server:
-    #container_name: ws-server
     image: ws-server
     build:
       context: ./
       dockerfile: Dockerfile.server
     networks:
-      - ws-notifications-network
+      - notifications-network
   ws-client:
-    #container_name: ws-client
     image: ws-client
     build:
       context: ./
@@ -43,7 +41,14 @@ services:
       WS_SCHEME: wss
       WS_HOSTNAME: ws-nginx
     networks:
-      - ws-notifications-network
+      - notifications-network
     depends_on:
       - ws-nginx
+  sse-server:
+    image: sse-server
+    build:
+      context: ./
+      dockerfile: Dockerfile.sse.server
+    networks:
+      - notifications-network
 

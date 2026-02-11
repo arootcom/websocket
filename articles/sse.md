@@ -75,5 +75,9 @@ location /api/sse-notifications {
 # Тестирование
 
 ```
+$ docker-compose up -d --scale ws-server=1 --scale ws-client=1 --scale sse-server=1
+```
+
+```
 $ curl -N -v http://localhost:8080/sse-notifications
 ```
