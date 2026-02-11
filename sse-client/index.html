@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>SSE-Notifications</title>
+    <style>
+        #events { font-family: monospace; padding: 10px; border: 1px solid #ccc; height: 200px; overflow-y: auto; }
+        .msg { margin-bottom: 5px; color: #222; }
+        .status { color: gray; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <h2>Поток событий от сервера:</h2>
+    <div id="events"></div>
+
+    <script>
+        const eventContainer = document.getElementById('events');
+
+        // 1. Инициализируем соединение
+        const source = new EventSource('/sse-notifications'); // Путь к вашему серверу
+
+        // 2. Слушаем стандартные сообщения (без указания event: в потоке)
+        source.onmessage = (event) => {
+            const newElement = document.createElement("div");
+            newElement.className = "msg";
+            newElement.textContent = `Сообщение: ${event.data}`;
+            eventContainer.appendChild(newElement);
+            eventContainer.scrollTop = eventContainer.scrollHeight;
+        };
+
+        // 3. Обработка открытия соединения
+        source.onopen = () => {
+            const status = document.createElement("div");
+            status.className = "status";
+            status.textContent = "● Соединение установлено";
+            eventContainer.appendChild(status);
+        };
+
+        // 4. Обработка ошибок (авто-реконнект происходит сам)
+        source.onerror = () => {
+            console.error("Ошибка подключения. Браузер попробует снова через пару секунд.");
+        };
+    </script>
+</body>
+</html>
+

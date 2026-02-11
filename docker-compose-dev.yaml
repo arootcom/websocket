@@ -1,14 +1,14 @@
 version: '3.7'
 
 networks:
-  ws-dev-network:
-    name: ws-dev-network
+  dev-network:
+    name: dev-network
     driver: bridge
 
 services:
   ws-dev-server:
     container_name: ws-dev-server
-    image: ws-dev
+    image: golang-dev
     build:
       context: ./
       dockerfile: Dockerfile.dev
@@ -17,10 +17,10 @@ services:
     ports:
       - 80:80
     networks:
-      - ws-dev-network
+      - dev-network
   ws-dev-client:
     container_name: ws-dev-client
-    image: ws-dev
+    image: golang-dev
     build:
       context: ./
       dockerfile: Dockerfile.dev
@@ -30,5 +30,17 @@ services:
       WS_SCHEME: ws
       WS_HOSTNAME: ws-dev-server
     networks:
-      - ws-dev-network
+      - dev-network
+  sse-dev-server:
+    container_name: sse-dev-server
+    image: golang-dev
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./sse-server:/usr/src/app
+    ports:
+      - 8080:80
+    networks:
+      - dev-network
 
