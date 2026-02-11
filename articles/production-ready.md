@@ -177,9 +177,6 @@ location /ws-notifications/ {
     # на 5-10 секунд, прокси не обрубит связь "кодом 1006"
     proxy_read_timeout 90s;
     proxy_send_timeout 90s;
-
-    # Отключаем буферизацию, чтобы сообщения улетали мгновенно
-    proxy_buffering off;
     ...
 }
 ```
