@@ -6,31 +6,31 @@ networks:
     driver: bridge
 
 services:
-  ws-dev-server:
-    container_name: ws-dev-server
-    image: golang-dev
-    build:
-      context: ./
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./server:/usr/src/app
-    ports:
-      - 80:80
-    networks:
-      - dev-network
-  ws-dev-client:
-    container_name: ws-dev-client
-    image: golang-dev
-    build:
-      context: ./
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./client:/usr/src/app
-    environment:
-      WS_SCHEME: ws
-      WS_HOSTNAME: ws-dev-server
-    networks:
-      - dev-network
+#  ws-dev-server:
+#    container_name: ws-dev-server
+#    image: golang-dev
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile.dev
+#    volumes:
+#      - ./server:/usr/src/app
+#    ports:
+#      - 80:80
+#    networks:
+#      - dev-network
+#  ws-dev-client:
+#    container_name: ws-dev-client
+#    image: golang-dev
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile.dev
+#    volumes:
+#      - ./client:/usr/src/app
+#    environment:
+#      WS_SCHEME: ws
+#      WS_HOSTNAME: ws-dev-server
+#    networks:
+#      - dev-network
   sse-dev-server:
     container_name: sse-dev-server
     image: golang-dev
@@ -39,8 +39,18 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./sse-server:/usr/src/app
+    environment:
+      NATS_URL: nats
     ports:
-      - 8080:80
+      - 80:80
     networks:
       - dev-network
-
+  nats:
+    container_name: nats # Брокер сообщений NATS JetStream
+    image: nats:2.12.4
+    command: "-js -m 8222" # Включаем JetStream и мониторинг
+    ports:
+      - "4222:4222" # Клиентский порт
+      - "8222:8222" # HTTP мониторинг
+    networks:
+      - dev-network

@@ -24,6 +24,7 @@ services:
     depends_on:
 #      - ws-server
       - sse-server
+      - nats
 #  ws-server:
 #    image: ws-server
 #    build:
@@ -52,4 +53,11 @@ services:
       dockerfile: Dockerfile.sse.server
     networks:
       - notifications-network
+  nats:
+    container_name: nats # Брокер сообщений NATS JetStream
+    image: nats:2.12.4
+    command: "-js -m 8222" # Включаем JetStream и мониторинг
+    ports:
+      - "4222:4222" # Клиентский порт
+      - "8222:8222" # HTTP мониторинг
 

@@ -1,20 +1,30 @@
 package main
 
 import (
+    "os"
     "fmt"
 	"log"
-	"net/http"
 	"time"
+    //"context"
+	"net/http"
+    "github.com/nats-io/nats.go"
+    //"github.com/nats-io/nats.go/jetstream"
 )
 
 func sseHandler(w http.ResponseWriter, r *http.Request) {
-	// 1. Устанавливаем обязательные заголовки
+	userID := r.URL.Query().Get("user_id") // В проде берем из JWT
+	if userID == "" {
+		http.Error(w, "user_id required", http.StatusBadRequest)
+		return
+	}
+
+	// Устанавливаем обязательные заголовки
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	// w.Header().Set("Access-Control-Allow-Origin", "*") // Для CORS, если нужно
 
-	// 2. Получаем Flusher, чтобы отправлять данные немедленно
+	// Получаем Flusher, чтобы отправлять данные немедленно
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
@@ -23,7 +33,7 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Клиент подключился")
 
-	// 3. Цикл отправки событий
+	// Цикл отправки событий
 	for {
 		select {
 		case <-r.Context().Done():
@@ -35,7 +45,7 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 			currentTime := time.Now().Format("15:04:05")
 			fmt.Fprintf(w, "data: Текущее время сервера: %s\n\n", currentTime)
 
-			// 4. Сбрасываем буфер в сеть прямо сейчас
+			// Сбрасываем буфер в сеть прямо сейчас
 			flusher.Flush()
 
 			// Ждем 2 секунды перед следующим событием
@@ -45,10 +55,21 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Подключение к NATS
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = nats.DefaultURL
+	}
+	nc, err := nats.Connect(natsURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+    log.Println(nc)
+
 	http.HandleFunc("/sse-notifications", sseHandler)
 
 	log.Println("Сервер запущен на :80")
-    err := http.ListenAndServe(":80", nil)
+    err = http.ListenAndServe(":80", nil)
     if err != nil {
         log.Fatal("ListenAndServe: ", err)
     }
