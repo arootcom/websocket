@@ -130,3 +130,24 @@ $ docker-compose up -d --scale ws-server=1 --scale ws-client=1 --scale sse-serve
 ```
 $ curl -N -v http://localhost/sse-notifications?user_id=rootcom
 ```
+
+**Просмотр списка стримов nuts**
+
+```
+$ nats stream list
+$ nats stream info notifications
+```
+
+или
+
+http://localhost:8222/jsz?streams=true
+
+**Отправка сообщений**
+
+```
+$ nats pub events.broadcast "Общее сообщение для всех"
+```
+
+```
+$ nats pub events.user.rootcom "Привет, юзер rootcom!"
+```

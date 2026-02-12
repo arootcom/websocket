@@ -4,14 +4,19 @@ import (
     "os"
     "fmt"
 	"log"
-	"time"
-    //"context"
+    "context"
 	"net/http"
     "github.com/nats-io/nats.go"
-    //"github.com/nats-io/nats.go/jetstream"
+    "github.com/nats-io/nats.go/jetstream"
 )
 
-func sseHandler(w http.ResponseWriter, r *http.Request) {
+// App содержит зависимости нашего сервера
+type App struct {
+	js jetstream.JetStream
+}
+
+// sseHandler отдельный метод структуры App
+func (app *App) sseHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id") // В проде берем из JWT
 	if userID == "" {
 		http.Error(w, "user_id required", http.StatusBadRequest)
@@ -31,25 +36,42 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Клиент подключился")
+	// Создаем consumer для этого клиента
+	// Он будет слушать общие события и персональные
+    ctx := r.Context()
+	cons, err := app.js.CreateOrUpdateConsumer(ctx, "notifications", jetstream.ConsumerConfig{
+		FilterSubjects: []string{"events.broadcast", "events.user." + userID},
+		DeliverPolicy:  jetstream.DeliverNewPolicy, // Только новые уведомления
+	})
+	if err != nil {
+		log.Printf("Consumer error: %v", err)
+		return
+	}
+
+	// Потребляем сообщения
+	iter, _ := cons.Messages()
+	defer iter.Stop()
+
+    log.Printf("Пользователь %s подключен\n", userID)
 
 	// Цикл отправки событий
 	for {
 		select {
 		case <-r.Context().Done():
 			// Если клиент закрыл вкладку/соединение
-			log.Println("Клиент отключился")
+			log.Printf("Пользователь %s отключился\n", userID)
 			return
 		default:
-			// Формат SSE: "data: <сообщение>\n\n"
-			currentTime := time.Now().Format("15:04:05")
-			fmt.Fprintf(w, "data: Текущее время сервера: %s\n\n", currentTime)
+			msg, err := iter.Next()
+			if err != nil {
+				continue
+			}
 
-			// Сбрасываем буфер в сеть прямо сейчас
+			// Отправка в SSE формат
+			fmt.Fprintf(w, "data: %s\n\n", string(msg.Data()))
 			flusher.Flush()
 
-			// Ждем 2 секунды перед следующим событием
-			time.Sleep(2 * time.Second)
+			msg.Ack() // Подтверждаем получение
 		}
 	}
 }
@@ -64,9 +86,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-    log.Println(nc)
 
-	http.HandleFunc("/sse-notifications", sseHandler)
+    // Инициализация JetStream
+	js, _ := jetstream.New(nc)
+    app := &App{js: js}
+
+	// Создаем стрим для уведомлений
+    ctx := context.Background()
+	cfg := jetstream.StreamConfig{
+		Name:     "notifications",
+		Subjects: []string{"events.>"}, // Слушаем все в этом пространстве
+	}
+	app.js.CreateOrUpdateStream(ctx, cfg)
+
+	http.HandleFunc("/sse-notifications", app.sseHandler)
 
 	log.Println("Сервер запущен на :80")
     err = http.ListenAndServe(":80", nil)
