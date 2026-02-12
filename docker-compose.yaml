@@ -22,28 +22,29 @@ services:
     networks:
       - notifications-network
     depends_on:
-      - ws-server
-  ws-server:
-    image: ws-server
-    build:
-      context: ./
-      dockerfile: Dockerfile.server
-    networks:
-      - notifications-network
-  ws-client:
-    image: ws-client
-    build:
-      context: ./
-      dockerfile: Dockerfile.client
-    volumes:
-      - ./client:/usr/src/app
-    environment:
-      WS_SCHEME: wss
-      WS_HOSTNAME: ws-nginx
-    networks:
-      - notifications-network
-    depends_on:
-      - ws-nginx
+#      - ws-server
+      - sse-server
+#  ws-server:
+#    image: ws-server
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile.server
+#    networks:
+#      - notifications-network
+#  ws-client:
+#    image: ws-client
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile.client
+#    volumes:
+#      - ./client:/usr/src/app
+#    environment:
+#      WS_SCHEME: wss
+#      WS_HOSTNAME: ws-nginx
+#    networks:
+#      - notifications-network
+#    depends_on:
+#      - ws-nginx
   sse-server:
     image: sse-server
     build:
