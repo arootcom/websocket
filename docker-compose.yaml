@@ -51,6 +51,8 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.sse.server
+    environment:
+      NATS_URL: nats
     networks:
       - notifications-network
   nats:
@@ -60,4 +62,6 @@ services:
     ports:
       - "4222:4222" # Клиентский порт
       - "8222:8222" # HTTP мониторинг
+    networks:
+      - notifications-network
 

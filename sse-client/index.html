@@ -14,12 +14,16 @@
     <div id="events"></div>
 
     <script>
+        //
         const eventContainer = document.getElementById('events');
+        // Берем строку запроса из текущего URL
+        const query = window.location.search;
+        // Добавляем её к URL SSE-сервиса
+        const url = `/sse-notifications${query}`;
+        // Инициализируем соединение
+        const source = new EventSource(url);
 
-        // 1. Инициализируем соединение
-        const source = new EventSource('/sse-notifications'); // Путь к вашему серверу
-
-        // 2. Слушаем стандартные сообщения (без указания event: в потоке)
+        // Слушаем стандартные сообщения (без указания event: в потоке)
         source.onmessage = (event) => {
             const newElement = document.createElement("div");
             newElement.className = "msg";
