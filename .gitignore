@@ -2,4 +2,7 @@
 **.cmapx
 nginx/localhost-key.pem
 nginx/localhost.pem
-
+typespec/node_modules
+typespec/package-lock.json
+typespec/package.json
+typespec/tsp-output

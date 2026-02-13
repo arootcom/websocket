@@ -17,3 +17,14 @@
 
 Браузер парсит текстовый поток. Если вы пришлете JSON на 100 МБ, JSON.parse может заморозить поток выполнения или вызвать Out of Memory.
 
+# TypeSpec
+
+```
+npm install -g @typespec/compiler
+```
+
+```
+$ npm install @typespec/http
+$ npm install @typespec/openapi3
+$ tsp compile notifications.tsp --emit @typespec/openapi3
+```

@@ -12,6 +12,7 @@
 ## Links
 
 - [DockerHub: NATS](https://hub.docker.com/_/nats/)
+- [TypeSpec](https://typespec.io/)
 
 ## TODO
 
