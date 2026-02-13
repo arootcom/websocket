@@ -32,7 +32,7 @@
             eventContainer.scrollTop = eventContainer.scrollHeight;
         };
 
-        // 3. Обработка открытия соединения
+        // Обработка открытия соединения
         source.onopen = () => {
             const status = document.createElement("div");
             status.className = "status";
@@ -40,7 +40,7 @@
             eventContainer.appendChild(status);
         };
 
-        // 4. Обработка ошибок (авто-реконнект происходит сам)
+        // Обработка ошибок (авто-реконнект происходит сам)
         source.onerror = () => {
             console.error("Ошибка подключения. Браузер попробует снова через пару секунд.");
         };

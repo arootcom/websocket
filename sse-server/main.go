@@ -3,9 +3,10 @@ package main
 import (
     "os"
     "fmt"
-	"log"
+    "log"
     "context"
-	"net/http"
+    "net/http"
+    "encoding/json"
     "github.com/nats-io/nats.go"
     "github.com/nats-io/nats.go/jetstream"
 )
@@ -13,6 +14,12 @@ import (
 // App содержит зависимости нашего сервера
 type App struct {
 	js jetstream.JetStream
+}
+
+//
+type Notification struct {
+    ID      string `json:"id"`
+    Message string `json:"message"`
 }
 
 // sseHandler отдельный метод структуры App
@@ -76,6 +83,35 @@ func (app *App) sseHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//
+func (app *App) startHandler(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id") // В проде берем из JWT
+	if userID == "" {
+		http.Error(w, "user_id required", http.StatusBadRequest)
+		return
+	}
+    log.Printf("Пользователь %s запустил процесс\n", userID)
+
+    notification, _ := json.Marshal(Notification{ID: "1", Message: "Hello!"})
+    subject := fmt.Sprintf("events.user.%s", userID)
+
+	// Отправляем персонально пользователю
+    ctx := context.Background()
+	ack, err := app.js.Publish(ctx, subject, []byte(notification))
+	if err != nil {
+		log.Fatal("Ошибка публикации в %s: %v", subject, err)
+		http.Error(w, "Ошибка публикации", http.StatusInternalServerError)
+		return
+	}
+	// Печатаем ID сообщения в стриме, подтверждение доставки в NATS
+	log.Printf("Сообщение доставлено в NATS! Stream: %s, Sequence: %d\n", ack.Stream, ack.Sequence)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+    w.Write([]byte(notification))
+}
+
+//
 func main() {
 	// Подключение к NATS
 	natsURL := os.Getenv("NATS_URL")
@@ -100,6 +136,7 @@ func main() {
 	app.js.CreateOrUpdateStream(ctx, cfg)
 
 	http.HandleFunc("/sse-notifications", app.sseHandler)
+	http.HandleFunc("/start-process", app.startHandler)
 
 	log.Println("Сервер запущен на :80")
     err = http.ListenAndServe(":80", nil)
