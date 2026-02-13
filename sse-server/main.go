@@ -96,7 +96,17 @@ func (app *App) startHandler(w http.ResponseWriter, r *http.Request) {
     log.Printf("Пользователь %s запустил процесс\n", userID)
 
     id := uuid.New().String()
-    notification, _ := json.Marshal(Notification{ID: id, Message: "Задача запущена", Progress: 0})
+    step := "Задача запущена"
+    payload := ProgressPayload{Progress: 0, StepName: &step}
+    progress := ProgressNotification{
+        Payload: payload,
+        TaskId: id,
+        Timestamp: time.Now().UTC(),
+        Type: "task_progress",
+        Version: ProgressNotificationVersionV1,
+    }
+
+    notification, _ := json.Marshal(progress)
     subject := fmt.Sprintf("events.user.%s", userID)
 
 	// Отправляем персонально пользователю
@@ -126,15 +136,22 @@ func (app *App) startHandler(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(500 * time.Millisecond)
 
 			// Подготовка данных
-            msg := fmt.Sprintf("Задача %s выполнена на %d%%", id, i)
-			payload := Notification{ID: id, Message: msg, Progress: i}
-            data, _ := json.Marshal(payload)
-			_, err := app.js.Publish(ctx, subject, data)
+            step := fmt.Sprintf("Задача выполнена на %d%%", i)
+            payload := ProgressPayload{Progress: int32(i), StepName: &step}
+            progress := ProgressNotification{
+                Payload: payload,
+                TaskId: id,
+                Timestamp: time.Now().UTC(),
+                Type: "task_progress",
+                Version: ProgressNotificationVersionV1,
+            }
+            notification, _ := json.Marshal(progress)
+			_, err := app.js.Publish(ctx, subject, notification)
 			if err != nil {
 				log.Printf("Ошибка публикации прогресса для %s: %v", id, err)
 				return
 			}
-			log.Printf(msg)
+			log.Printf("Задача %s выполнена на %d процентов", id, i)
 		}
 
 		log.Printf("Задача %s завершена", id)

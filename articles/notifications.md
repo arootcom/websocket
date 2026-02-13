@@ -26,5 +26,53 @@ npm install -g @typespec/compiler
 ```
 $ npm install @typespec/http
 $ npm install @typespec/openapi3
+```
+
+Для генерации кода на Go из TypeSpec используется официальный эмиттер @typespec/http-client-csharp (на текущий момент официальный эмиттер для Go находится в стадии разработки/активного сообщества) или более универсальный путь через OpenAPI.
+
+Шаг 1: Генерация OpenAPI спецификации
+
+Компилируем TypeSpec в JSON
+
+```
 $ tsp compile notifications.tsp --emit @typespec/openapi3
 ```
+
+После этого в папке tsp-output/@typespec/openapi3 появится файл openapi.yaml
+
+Шаг 3: Генерация Go-структур
+
+Используем полученный файл для генерации структур
+
+```
+$ oapi-codegen -generate types -package models tsp-output/@typespec/openapi3/openapi.yaml > models.gen.go
+```
+
+Альтернативно можно использовать TypeSpec-Go (Experimental)
+
+> [!NOTE]
+> Может поддерживать не все функции TypeSpec v1.9.0
+
+Установить
+
+```
+$ npm install @typespec/http-client-go
+```
+
+Запустить
+
+```
+$ tsp compile notifications.tsp --emit @typespec/http-client-go
+```
+
+# Тестирование
+
+```
+$ curl -N -v http://localhost/sse-notifications?user_id=rootcom
+```
+
+```
+$ curl -v http://localhost/start-process?user_id=rootcom | jq
+```
+
+

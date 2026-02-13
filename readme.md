@@ -13,6 +13,7 @@
 
 - [DockerHub: NATS](https://hub.docker.com/_/nats/)
 - [TypeSpec](https://typespec.io/)
+- [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen)
 
 ## TODO
 
