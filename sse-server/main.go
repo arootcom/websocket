@@ -4,11 +4,13 @@ import (
     "os"
     "fmt"
     "log"
+    "time"
     "context"
     "net/http"
     "encoding/json"
     "github.com/nats-io/nats.go"
     "github.com/nats-io/nats.go/jetstream"
+    "github.com/google/uuid"
 )
 
 // App содержит зависимости нашего сервера
@@ -18,8 +20,9 @@ type App struct {
 
 //
 type Notification struct {
-    ID      string `json:"id"`
-    Message string `json:"message"`
+    ID          string `json:"id"`
+    Message     string `json:"message"`
+    Progress    int    `json:"progress"` // 0-100
 }
 
 // sseHandler отдельный метод структуры App
@@ -92,7 +95,8 @@ func (app *App) startHandler(w http.ResponseWriter, r *http.Request) {
 	}
     log.Printf("Пользователь %s запустил процесс\n", userID)
 
-    notification, _ := json.Marshal(Notification{ID: "1", Message: "Hello!"})
+    id := uuid.New().String()
+    notification, _ := json.Marshal(Notification{ID: id, Message: "Задача запущена", Progress: 0})
     subject := fmt.Sprintf("events.user.%s", userID)
 
 	// Отправляем персонально пользователю
@@ -105,6 +109,36 @@ func (app *App) startHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Печатаем ID сообщения в стриме, подтверждение доставки в NATS
 	log.Printf("Сообщение доставлено в NATS! Stream: %s, Sequence: %d\n", ack.Stream, ack.Sequence)
+
+	// Создаем фоновый контекст, не привязанный к текущему HTTP-запросу
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+
+    // Порождаем горутину
+    go func() {
+        // defer гарантирует, что ресурсы очистятся в ЛЮБОМ случае:
+		// при успехе, при ошибке или при панике.
+		defer cancel()
+
+        log.Printf("Задача %s запущена", id)
+
+		for i := 0; i <= 100; i += 10 {
+			// Имитация работы
+			time.Sleep(500 * time.Millisecond)
+
+			// Подготовка данных
+            msg := fmt.Sprintf("Задача %s выполнена на %d%%", id, i)
+			payload := Notification{ID: id, Message: msg, Progress: i}
+            data, _ := json.Marshal(payload)
+			_, err := app.js.Publish(ctx, subject, data)
+			if err != nil {
+				log.Printf("Ошибка публикации прогресса для %s: %v", id, err)
+				return
+			}
+			log.Printf(msg)
+		}
+
+		log.Printf("Задача %s завершена", id)
+    }()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
