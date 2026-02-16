@@ -2,48 +2,120 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>SSE-Notifications</title>
-    <style>
-        #events { font-family: monospace; padding: 10px; border: 1px solid #ccc; height: 200px; overflow-y: auto; }
-        .msg { margin-bottom: 5px; color: #222; }
-        .status { color: gray; font-size: 0.8em; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com" rel="stylesheet">
+    <title>Task Monitor</title>
 </head>
-<body>
-    <h2>Поток событий от сервера:</h2>
-    <div id="events"></div>
+<body class="bg-slate-50 p-8 font-sans">
+
+    <div class="max-w-3xl mx-auto">
+        <!-- Заголовок и кнопка запуска -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Мониторинг задач</h1>
+            <button id="runTask" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-lg active:scale-95">
+                <i class="fas fa-play mr-2 text-xs"></i> Запустить задачу
+            </button>
+        </div>
+
+        <!-- Список задач (Карточки) -->
+        <div id="taskList" class="space-y-4">
+        </div>
+    </div>
 
     <script>
-        //
-        const eventContainer = document.getElementById('events');
         // Берем строку запроса из текущего URL
         const query = window.location.search;
         // Добавляем её к URL SSE-сервиса
         const url = `/sse-notifications${query}`;
-        // Инициализируем соединение
-        const source = new EventSource(url);
+        const eventSource = new EventSource(url);
+        const taskList = document.getElementById('taskList');
+        const runBtn = document.getElementById('runTask');
 
-        // Слушаем стандартные сообщения (без указания event: в потоке)
-        source.onmessage = (event) => {
-            const newElement = document.createElement("div");
-            newElement.className = "msg";
-            newElement.textContent = `Сообщение: ${event.data}`;
-            eventContainer.appendChild(newElement);
-            eventContainer.scrollTop = eventContainer.scrollHeight;
+        function createTaskCard(data) {
+            const taskId = data.taskId;
+            const taskName = data.payload.stepName || "Новая задача";
+            const cardHtml = `
+<div id="task-card-${taskId}" class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 transition-all animate-fade-in">
+    <div class="flex justify-between items-start mb-4">
+        <div>
+            <h3 class="font-semibold text-slate-700">${taskName}</h3>
+            <p class="text-sm text-slate-400">ID: <span class="font-mono">${taskId}</span></p>
+        </div>
+        <span id="status-${taskId}" class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full uppercase tracking-wider">Выполняется</span>
+    </div>
+    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+        <div id="progress-bar-${taskId}" class="bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(99,102,241,0.5)]" style="width: 0%"></div>
+    </div>
+    <div class="flex justify-between text-xs text-slate-500">
+        <span id="step-name-${taskId}">Подготовка...</span>
+        <span id="percent-${taskId}" class="font-bold text-slate-700">0%</span>
+    </div>
+</div>
+`;
+
+            // Вставляем новую задачу в начало списка
+            taskList.insertAdjacentHTML('afterbegin', cardHtml);
+        }
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            // console.log("Задача:", data);
+
+            // Если карточки еще нет — создаем её
+            if (!document.getElementById(`task-card-${data.taskId}`)) {
+                createTaskCard(data);
+            }
+
+            if (data.type === 'task_progress') {
+                const bar = document.getElementById(`progress-bar-${data.taskId}`);
+                const text = document.getElementById(`percent-${data.taskId}`);
+                const step = document.getElementById(`step-name-${data.taskId}`);
+
+                if (bar) {
+                    const percent = data.payload.progress;
+                    bar.style.width = `${percent}%`;
+                    text.innerText = `${percent}%`;
+                    if (data.payload.step) step.innerText = `Этап: ${data.payload.step}`;
+
+                    // Если задача завершена (100%)
+                    if (percent === 100) {
+                        document.getElementById(`status-${data.taskId}`).className =
+                            "px-3 py-1 bg-green-100 text-green-600 text-xs font-bold rounded-full uppercase tracking-wider";
+                        document.getElementById(`status-${data.taskId}`).innerText = "Завершено";
+                    }
+                }
+            }
         };
 
-        // Обработка открытия соединения
-        source.onopen = () => {
-            const status = document.createElement("div");
-            status.className = "status";
-            status.textContent = "● Соединение установлено";
-            eventContainer.appendChild(status);
+        // Функция отправки запроса на запуск задачи
+        runBtn.onclick = async () => {
+            runBtn.disabled = true;
+            try {
+                const response = await fetch(`/start-process${query}`, {
+                    method: 'GET',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                if (!response.ok) {
+                    // Если сервер вернул 4xx или 5xx ошибку
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Ошибка запуска');
+                }
+
+                const result = await response.json();
+                console.log("Задача успешно запущена:", result);
+
+                // Можно сразу создать карточку, если бэкенд вернул ID
+                //if (result.taskId) {
+                //    createTaskCard(result);
+                //}
+            } catch (e) {
+                alert("Ошибка связи с сервером");
+            } finally {
+                runBtn.disabled = false;
+            }
         };
 
-        // Обработка ошибок (авто-реконнект происходит сам)
-        source.onerror = () => {
-            console.error("Ошибка подключения. Браузер попробует снова через пару секунд.");
-        };
     </script>
 </body>
 </html>

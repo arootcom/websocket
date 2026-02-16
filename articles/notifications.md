@@ -68,11 +68,11 @@ $ tsp compile notifications.tsp --emit @typespec/http-client-go
 # Тестирование
 
 ```
-$ curl -N -v http://localhost/sse-notifications?user_id=rootcom
+$ curl -k -v http://localhost/sse-notifications?user_id=rootcom
 ```
 
 ```
-$ curl -v http://localhost/start-process?user_id=rootcom | jq
+$ curl -k -v http://localhost/start-process?user_id=rootcom | jq
 ```
 
 

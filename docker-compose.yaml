@@ -55,6 +55,8 @@ services:
       NATS_URL: nats
     networks:
       - notifications-network
+    depends_on:
+      - nats
   nats:
     container_name: nats # Брокер сообщений NATS JetStream
     image: nats:2.12.4
