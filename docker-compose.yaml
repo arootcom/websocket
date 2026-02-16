@@ -17,6 +17,7 @@ services:
     volumes:
       - ./nginx/:/etc/nginx/
       - ./sse-client:/usr/share/nginx/html/
+      - ./swagger:/var/www/swagger/
     ports:
       - 443:443
     networks:

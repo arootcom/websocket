@@ -65,6 +65,12 @@ $ npm install @typespec/http-client-go
 $ tsp compile notifications.tsp --emit @typespec/http-client-go
 ```
 
+# Swagger UI
+
+Вот прямая ссылка на страницу со всеми [релизами Swagger UI](https://github.com/swagger-api/swagger-ui/releases)
+После распаковки понадобится только содержимое папки dist
+
+
 # Тестирование
 
 ```
